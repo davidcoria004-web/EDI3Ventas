@@ -1,0 +1,6 @@
+@EDI3Ventas_HostAddress = http://localhost:5232
+
+GET {{EDI3Ventas_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
