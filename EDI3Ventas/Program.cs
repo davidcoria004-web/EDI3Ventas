@@ -23,7 +23,7 @@ string connectionString =
         "No se encontro la conexion VentasDB en appsettings.json.");
 
 // Endpoint principal
-app.MapGet("/", () => "API EDI3Ventas funcionando");
+//app.MapGet("/", () => "API EDI3Ventas funcionando");
 
 // Comprobar conexión a SQL Server
 app.MapGet("/api/estado-db", async () =>
