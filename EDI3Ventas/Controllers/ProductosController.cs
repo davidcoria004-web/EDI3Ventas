@@ -109,7 +109,9 @@ public class ProductosController : ControllerBase
 
         try
         {
-            var id = (int)await cmd.ExecuteScalarAsync()!;
+            var valor = await cmd.ExecuteScalarAsync();
+            if (valor is not int id)
+                return StatusCode(500, new { error = "No se obtuvo el ID del producto creado." });
 
             return CreatedAtAction(
                 nameof(ObtenerPorId),
@@ -237,7 +239,7 @@ public class ProductosController : ControllerBase
             Nombre = Convert.ToString(rd["Nombre"])!,
             UnidadMedida = Convert.ToString(rd["UnidadMedida"])!,
             PrecioUnitario = Convert.ToDecimal(rd["PrecioUnitario"]),
-            StockActual = Convert.ToInt32(rd["StockActual"]),
+            StockActual = Convert.ToDecimal(rd["StockActual"]),
             Activo = Convert.ToBoolean(rd["Activo"])
         };
     }

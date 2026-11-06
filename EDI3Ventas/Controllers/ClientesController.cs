@@ -99,9 +99,11 @@ public class ClientesController : ControllerBase
 
         await using var cmd = new SqlCommand(sql, cn);
         AgregarParametrosCliente(cmd, cliente);
-        cmd.Parameters.AddWithValue("@FechaAlta", DateTime.Today);
+        cmd.Parameters.AddWithValue("@FechaAlta", DateTime.Now);
 
-        var id = (int)await cmd.ExecuteScalarAsync()!;
+        var valor = await cmd.ExecuteScalarAsync();
+        if (valor is not int id)
+            return StatusCode(500, new { error = "No se obtuvo el ID del cliente creado." });
 
         return CreatedAtAction(
             nameof(ObtenerPorId),

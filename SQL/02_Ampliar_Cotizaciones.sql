@@ -1,0 +1,26 @@
+-- Complemento minoristas: agrega cotizacion de pedido sin eliminar tablas existentes.
+USE EDI3_TP8;
+GO
+IF OBJECT_ID(N'dbo.Cotizacion', N'U') IS NULL
+CREATE TABLE dbo.Cotizacion (
+    CotizacionID INT IDENTITY(1,1) PRIMARY KEY,
+    PedidoID INT NOT NULL UNIQUE REFERENCES dbo.Pedido(PedidoID),
+    NumeroCotizacion NVARCHAR(30) NOT NULL UNIQUE,
+    FechaCotizacion DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    Estado NVARCHAR(20) NOT NULL DEFAULT N'Emitida'
+);
+GO
+IF OBJECT_ID(N'dbo.DetalleCotizacion', N'U') IS NULL
+CREATE TABLE dbo.DetalleCotizacion (
+    DetalleCotizacionID INT IDENTITY(1,1) PRIMARY KEY,
+    CotizacionID INT NOT NULL REFERENCES dbo.Cotizacion(CotizacionID),
+    ProductoID INT NOT NULL REFERENCES dbo.Producto(ProductoID),
+    Cantidad DECIMAL(12,3) NOT NULL CHECK (Cantidad > 0),
+    PrecioUnitario DECIMAL(12,2) NOT NULL CHECK (PrecioUnitario >= 0),
+    CONSTRAINT UQ_DetalleCotizacion_Item UNIQUE (CotizacionID, ProductoID)
+);
+GO
+-- SQLedi3 no restringe Factura por OrdenCompra; evitar doble facturacion en este flujo.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Factura_Orden' AND object_id = OBJECT_ID(N'dbo.Factura'))
+    CREATE UNIQUE INDEX UX_Factura_Orden ON dbo.Factura (OrdenCompraID);
+GO
