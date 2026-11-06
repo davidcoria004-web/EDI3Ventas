@@ -1,4 +1,4 @@
-
+﻿
 namespace EDI3Ventas.Models;
 
 public class Producto
@@ -8,6 +8,6 @@ public class Producto
     public string Nombre { get; set; } = string.Empty;
     public string UnidadMedida { get; set; } = string.Empty;
     public decimal PrecioUnitario { get; set; }
-    public int StockActual { get; set; }
+    public decimal StockActual { get; set; }
     public bool Activo { get; set; } = true;
 }

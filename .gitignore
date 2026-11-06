@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+**/bin/
+**/obj/
+_respaldo_parche_*/
+*.bak
+**/appsettings.Development.json
+
+/Documentacion/

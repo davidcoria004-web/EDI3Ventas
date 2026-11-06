@@ -11,11 +11,14 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.3.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
+
 
   <ItemGroup>
-    <Folder Include="NewFolder1\" />
-    <Folder Include="NewFolder\" />
+    <!-- Conserva el legado, pero excluye rutas incompatibles con EDI3_TP8. -->
+    <Compile Remove="Controllers\OrdenesCompraController.cs" />
+    <Compile Remove="Controllers\WeatherForecastController.cs" />
+    <Compile Remove="WeatherForecast.cs" />
   </ItemGroup>
-
 </Project>
