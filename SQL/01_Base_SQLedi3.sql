@@ -1,5 +1,3 @@
--- EDI 3 TP8 - esquema inicial del PDF SQLedi3, corregido e idempotente.
--- Ejecutar en SSMS; solo crea tablas inexistentes. NO borra ni modifica registros.
 IF DB_ID(N'EDI3_TP8') IS NULL CREATE DATABASE EDI3_TP8;
 GO
 USE EDI3_TP8;
