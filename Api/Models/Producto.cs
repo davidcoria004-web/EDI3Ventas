@@ -1,4 +1,4 @@
-﻿
+
 namespace EDI3Ventas.Models;
 
 public class Producto

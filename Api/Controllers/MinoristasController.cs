@@ -4,8 +4,6 @@ using Microsoft.Data.SqlClient;
 
 namespace EDI3Ventas.Controllers;
 
-// API adicional aislada del controlador OrdenesCompra original.
-// Usa el esquema SQLedi3 (Pedido -> OrdenCompra -> Factura -> Pago/Remito).
 [ApiController]
 [Route("api/minoristas")]
 public sealed class MinoristasController(IConfiguration configuracion) : ControllerBase
@@ -36,7 +34,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
     private static decimal Decimal(object? valor) => valor is null or DBNull ? 0m : Convert.ToDecimal(valor);
     private static bool EsDuplicado(SqlException ex) => ex.Number is 2601 or 2627;
 
-    /// <summary>GET pedidos con detalle y total a precio congelado.</summary>
     [HttpGet("pedidos")]
     public async Task<IActionResult> ListarPedidos()
     {
@@ -44,7 +41,7 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         await using var cn = Conexion(); await cn.OpenAsync();
         const string sql = """
             SELECT p.PedidoID,p.ClienteID, c.Apellido + N', ' + c.Nombre AS Cliente,
-                   p.FechaPedido,p.Estado,
+                   p.FechaPedido,p.FechaEntregaSolicitada,p.Estado,
                    COALESCE((SELECT SUM(d.Cantidad * d.PrecioUnitario)
                      FROM dbo.DetallePedido d WHERE d.PedidoID=p.PedidoID),0) ImporteTotal
             FROM dbo.Pedido p INNER JOIN dbo.Cliente c ON c.ClienteID=p.ClienteID
@@ -56,7 +53,7 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
             while (await rd.ReadAsync()) lista.Add(new PedidoVista
             {
                 PedidoID = rd.GetInt32(0), ClienteID = rd.GetInt32(1), Cliente = rd.GetString(2),
-                FechaPedido = rd.GetDateTime(3), Estado = rd.GetString(4), ImporteTotal = rd.GetDecimal(5)
+                FechaPedido = rd.GetDateTime(3), FechaEntregaSolicitada = rd.IsDBNull(4) ? null : rd.GetDateTime(4), Estado = rd.GetString(5), ImporteTotal = rd.GetDecimal(6)
             });
         }
         const string detalleSql = """
@@ -76,7 +73,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(lista);
     }
 
-    /// <summary>GET pedido individual.</summary>
     [HttpGet("pedidos/{id:int}")]
     public async Task<IActionResult> ObtenerPedido(int id)
     {
@@ -85,20 +81,19 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>POST pedido; valida cliente, productos y cantidades en una transaccion.</summary>
     [HttpPost("pedidos")]
     public async Task<IActionResult> CrearPedido([FromBody] PedidoNuevoDto request)
     {
-        if (request.ClienteID <= 0 || (request.Detalles is null || request.Detalles.Count == 0) ||
+        if (request.ClienteID <= 0 || request.FechaEntregaSolicitada is null || (request.Detalles is null || request.Detalles.Count == 0) ||
             request.Detalles.Any(x => x.ProductoID <= 0 || x.Cantidad <= 0 || x.Cantidad > 999999999m || x.Cantidad != decimal.Round(x.Cantidad, 3)) ||
             request.Detalles.Select(x => x.ProductoID).Distinct().Count() != request.Detalles.Count)
-            return BadRequest(new { error = "Cliente, productos y cantidades validas sin repetidos son obligatorios." });
+            return BadRequest(new { error = "Cliente minorista, fecha solicitada, productos y cantidades validas son obligatorios." });
         await using var cn = Conexion(); await cn.OpenAsync();
         await using var tx = (SqlTransaction)await cn.BeginTransactionAsync(IsolationLevel.Serializable);
-        var existe = Int(await Escalar(cn, tx, "SELECT COUNT(*) FROM dbo.Cliente WHERE ClienteID=@id AND Activo=1", ("@id", request.ClienteID)));
-        if (existe == 0) return BadRequest(new { error = "Cliente no existe o esta inactivo." });
+        var existe = Int(await Escalar(cn, tx, "SELECT COUNT(*) FROM dbo.Cliente WHERE ClienteID=@id AND Activo=1 AND Categoria=N'Minorista'", ("@id", request.ClienteID)));
+        if (existe == 0) return BadRequest(new { error = "Cliente no existe, esta inactivo o no es minorista." });
         int pedidoId = Int(await Escalar(cn, tx,
-            "INSERT INTO dbo.Pedido(ClienteID,Estado) OUTPUT INSERTED.PedidoID VALUES(@cliente,N'Pendiente')", ("@cliente", request.ClienteID)));
+            "INSERT INTO dbo.Pedido(ClienteID,FechaEntregaSolicitada,Estado) OUTPUT INSERTED.PedidoID VALUES(@cliente,@fecha,N'Pendiente')", ("@cliente", request.ClienteID), ("@fecha", request.FechaEntregaSolicitada.Value.Date)));
         foreach (var item in request.Detalles)
         {
             decimal precio;
@@ -118,7 +113,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Created($"/api/minoristas/pedidos/{pedidoId}", new { pedidoID = pedidoId, mensaje = "Pedido registrado." });
     }
 
-    /// <summary>GET cotizaciones emitidas y aceptadas.</summary>
     [HttpGet("cotizaciones")]
     public async Task<IActionResult> ListarCotizaciones()
     {
@@ -139,7 +133,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(lista);
     }
 
-    /// <summary>GET cotizacion individual.</summary>
     [HttpGet("cotizaciones/{id:int}")]
     public async Task<IActionResult> ObtenerCotizacion(int id)
     {
@@ -148,7 +141,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>POST cotizacion: copia los detalles y precios originales del pedido.</summary>
     [HttpPost("pedidos/{id:int}/cotizar")]
     public async Task<IActionResult> CotizarPedido(int id)
     {
@@ -173,7 +165,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Created($"/api/minoristas/cotizaciones/{cotizacionId}", new { cotizacionID = cotizacionId, numeroCotizacion = numero });
     }
 
-    /// <summary>GET ordenes de compra y factura asociada.</summary>
     [HttpGet("ordenes")]
     public async Task<IActionResult> ListarOrdenes()
     {
@@ -202,7 +193,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(lista);
     }
 
-    /// <summary>GET orden individual.</summary>
     [HttpGet("ordenes/{id:int}")]
     public async Task<IActionResult> ObtenerOrden(int id)
     {
@@ -211,7 +201,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>POST OC minorista: coteja cotizacion y genera una factura de forma atomica.</summary>
     [HttpPost("ordenes")]
     public async Task<IActionResult> CrearOrden([FromBody] OrdenNuevaDto request)
     {
@@ -259,7 +248,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         }
     }
 
-    /// <summary>GET facturas con importe pagado y saldo calculado.</summary>
     [HttpGet("facturas")]
     public async Task<IActionResult> ListarFacturas()
     {
@@ -288,7 +276,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(lista);
     }
 
-    /// <summary>GET factura individual.</summary>
     [HttpGet("facturas/{id:int}")]
     public async Task<IActionResult> ObtenerFactura(int id)
     {
@@ -297,7 +284,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>POST pago; nunca permite exceder el saldo de factura.</summary>
     [HttpPost("facturas/{id:int}/pagos")]
     public async Task<IActionResult> RegistrarPago(int id, [FromBody] PagoNuevoDto request)
     {
@@ -325,7 +311,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(new { mensaje = "Pago registrado.", estadoPago = estado, saldo = saldo - request.Importe });
     }
 
-    /// <summary>GET remitos preparados, entregados y anulados.</summary>
     [HttpGet("remitos")]
     public async Task<IActionResult> ListarRemitos()
     {
@@ -348,7 +333,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Ok(lista);
     }
 
-    /// <summary>GET remito individual.</summary>
     [HttpGet("remitos/{id:int}")]
     public async Task<IActionResult> ObtenerRemito(int id)
     {
@@ -357,7 +341,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>POST remito: exige factura cancelada y pago asentado; descuenta stock una sola vez.</summary>
     [HttpPost("remitos")]
     public async Task<IActionResult> PrepararRemito([FromBody] RemitoNuevoDto request)
     {
@@ -395,7 +378,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         await using (var rd = await cmd.ExecuteReaderAsync())
         { while (await rd.ReadAsync()) lineas.Add((rd.GetInt32(0), rd.GetDecimal(1))); }
         if (lineas.Count == 0) return Conflict(new { error = "El pedido no tiene productos." });
-        // Se bloquea cada producto mientras se verifica y descuenta su stock.
         foreach (var linea in lineas)
         {
             object? stock = await Escalar(cn, tx, "SELECT StockActual FROM dbo.Producto WITH(UPDLOCK,HOLDLOCK) WHERE ProductoID=@id AND Activo=1",
@@ -403,7 +385,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
             if (stock is null or DBNull || Decimal(stock) < linea.Cantidad)
                 return Conflict(new { error = $"Stock insuficiente o producto inactivo: {linea.ProductoID}." });
         }
-        // NumeroRemito se asigna por ID despues de insertar la cabecera, dentro de la transaccion.
         int remitoId = Int(await Escalar(cn, tx, """
             INSERT INTO dbo.Remito(OrdenCompraID,NumeroRemito,Estado)
             OUTPUT INSERTED.RemitoID VALUES(@id,@temporal,N'Preparado')
@@ -425,7 +406,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return Created($"/api/minoristas/remitos/{remitoId}", new { remitoID = remitoId, numeroRemito });
     }
 
-    /// <summary>POST conformacion de retiro presencial del minorista.</summary>
     [HttpPost("remitos/{id:int}/entregar")]
     public async Task<IActionResult> EntregarRemito(int id)
     {
@@ -437,7 +417,6 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
         return filas == 1 ? Ok(new { mensaje = "Mercaderia entregada." }) : Conflict(new { error = "El remito no existe o no esta preparado." });
     }
 
-    /// <summary>POST anulacion: revierte cantidades al stock en la misma transaccion.</summary>
     [HttpPost("remitos/{id:int}/anular")]
     public async Task<IActionResult> AnularRemito(int id)
     {
@@ -462,6 +441,7 @@ public sealed class MinoristasController(IConfiguration configuracion) : Control
 public sealed class PedidoNuevoDto
 {
     public int ClienteID { get; set; }
+    public DateTime? FechaEntregaSolicitada { get; set; }
     public List<LineaPedidoNuevaDto> Detalles { get; set; } = [];
 }
 public sealed class LineaPedidoNuevaDto { public int ProductoID { get; set; } public decimal Cantidad { get; set; } }
@@ -481,6 +461,7 @@ public sealed class PedidoVista
     public int ClienteID { get; set; }
     public string Cliente { get; set; } = "";
     public DateTime FechaPedido { get; set; }
+    public DateTime? FechaEntregaSolicitada { get; set; }
     public string Estado { get; set; } = "";
     public decimal ImporteTotal { get; set; }
     public List<DetalleVista> Detalles { get; set; } = [];

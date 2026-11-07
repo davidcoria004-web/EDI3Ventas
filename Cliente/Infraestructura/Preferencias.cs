@@ -9,7 +9,6 @@ internal sealed class Preferencias
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "EDI3Ventas.Cliente", "preferencias.json");
 
-    // Lee la URL guardada.
     public static Preferencias Cargar()
     {
         try { return JsonSerializer.Deserialize<Preferencias>(File.ReadAllText(Ruta)) ?? new(); }
@@ -18,7 +17,6 @@ internal sealed class Preferencias
         catch (UnauthorizedAccessException) { return new(); }
     }
 
-    // Guarda la URL localmente.
     public void Guardar()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Ruta)!);

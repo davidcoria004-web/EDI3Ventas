@@ -3,7 +3,6 @@ using System.Drawing.Printing;
 
 namespace EDI3Ventas.Cliente.Formularios;
 
-/// <summary>Vista e impresion basica de comprobantes internos, no fiscales.</summary>
 internal sealed class DocumentoForm : Form
 {
     private readonly TextBox texto = new()
@@ -12,7 +11,6 @@ internal sealed class DocumentoForm : Form
         Font = new Font("Consolas", 10F), WordWrap = false
     };
 
-    // Muestra un comprobante interno.
     public DocumentoForm(string titulo, string contenido)
     {
         Text = titulo; Width = 830; Height = 620; MinimumSize = new Size(600, 400);
@@ -26,10 +24,8 @@ internal sealed class DocumentoForm : Form
         Controls.Add(texto); Controls.Add(pie);
     }
 
-    // Abre la vista previa de impresion.
     private void MostrarImpresion()
     {
-        // La impresion representa un comprobante interno para el TP, no facturacion ARCA.
         using var documento = new PrintDocument();
         string[] lineas = texto.Lines;
         int indice = 0;

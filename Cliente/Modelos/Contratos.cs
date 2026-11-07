@@ -2,7 +2,6 @@ using System.ComponentModel;
 
 namespace EDI3Ventas.Cliente.Modelos;
 
-// Contratos HTTP existentes en EDI3Ventas/Controllers.
 internal sealed class ClienteDto
 {
     public int ClienteID { get; set; }
@@ -14,6 +13,7 @@ internal sealed class ClienteDto
     public string? Direccion { get; set; }
     public DateTime? FechaAlta { get; set; }
     public bool Activo { get; set; }
+    public string Categoria { get; set; } = "Minorista";
     [Browsable(false)] public string Presentacion => $"{Apellido}, {Nombre} (ID {ClienteID})";
 }
 
@@ -48,7 +48,6 @@ internal sealed class ProductoGuardar
     public decimal StockActual { get; set; }
 }
 
-// Contratos nuevos definidos por BackendComplemento/Controllers/MinoristasController.cs.
 internal sealed class LineaPedido
 {
     public int ProductoID { get; set; }
@@ -64,6 +63,7 @@ internal sealed class PedidoDto
     public int ClienteID { get; set; }
     public string Cliente { get; set; } = "";
     public DateTime FechaPedido { get; set; }
+    public DateTime? FechaEntregaSolicitada { get; set; }
     public string Estado { get; set; } = "";
     public decimal ImporteTotal { get; set; }
     [Browsable(false)] public List<LineaPedido> Detalles { get; set; } = [];
@@ -78,6 +78,7 @@ internal sealed class LineaPedidoNueva
 internal sealed class PedidoNuevo
 {
     public int ClienteID { get; set; }
+    public DateTime FechaEntregaSolicitada { get; set; }
     public List<LineaPedidoNueva> Detalles { get; set; } = [];
 }
 

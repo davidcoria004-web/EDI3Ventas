@@ -13,12 +13,4 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.3.0" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
-
-
-  <ItemGroup>
-    <!-- Conserva el legado, pero excluye rutas incompatibles con EDI3_TP8. -->
-    <Compile Remove="Controllers\OrdenesCompraController.cs" />
-    <Compile Remove="Controllers\WeatherForecastController.cs" />
-    <Compile Remove="WeatherForecast.cs" />
-  </ItemGroup>
 </Project>

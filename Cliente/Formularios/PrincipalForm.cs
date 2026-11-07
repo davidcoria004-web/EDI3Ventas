@@ -4,7 +4,6 @@ using EDI3Ventas.Cliente.Modelos;
 
 namespace EDI3Ventas.Cliente.Formularios;
 
-/// <summary>Aplicacion principal: gestiona unicamente llamadas HTTP a la API.</summary>
 internal sealed class PrincipalForm : Form
 {
     private readonly ApiClient api = new();
@@ -15,7 +14,6 @@ internal sealed class PrincipalForm : Form
     private readonly DataGridView clientes = Ui.Tabla(), productos = Ui.Tabla(), pedidos = Ui.Tabla(),
         cotizaciones = Ui.Tabla(), ordenes = Ui.Tabla(), facturas = Ui.Tabla(), remitos = Ui.Tabla();
 
-    // Crea las pestañas del cliente.
     public PrincipalForm()
     {
         Text = "EDI 3 - Gestion de Ventas Minoristas";
@@ -41,7 +39,6 @@ internal sealed class PrincipalForm : Form
         Shown += async (_, _) => await Ui.Ejecutar(RefrescarActual);
     }
 
-    // Valida y guarda la URL de la API.
     private bool GuardarUrl()
     {
         if (!Uri.TryCreate(url.Text.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
@@ -52,7 +49,6 @@ internal sealed class PrincipalForm : Form
         return true;
     }
 
-    // Comprueba la conexion con la API.
     private async Task Probar()
     {
         if (!GuardarUrl()) return;
@@ -60,7 +56,6 @@ internal sealed class PrincipalForm : Form
         estado.Text = resultado.TryGetProperty("baseDatos", out var bd) ? "SQL conectado: " + bd.GetString() : "API conectada";
     }
 
-    // Crea una pestaña con barra y tabla.
     private TabPage ConTab(string titulo, DataGridView grilla, params Control[] barra)
     {
         var tab = new TabPage(titulo) { Padding = new Padding(6) };
@@ -68,7 +63,6 @@ internal sealed class PrincipalForm : Form
         return tab;
     }
 
-    // Crea las acciones de clientes.
     private TabPage CrearTabClientes()
     {
         return ConTab("Clientes", clientes,
@@ -78,7 +72,6 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Baja logica", async (_, _) => await Ui.Ejecutar(BajaCliente)));
     }
 
-    // Crea las acciones de productos.
     private TabPage CrearTabProductos()
     {
         return ConTab("Productos", productos,
@@ -88,7 +81,6 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Baja logica", async (_, _) => await Ui.Ejecutar(BajaProducto)));
     }
 
-    // Crea las vistas de pedidos y cotizaciones.
     private TabPage CrearTabPedidos()
     {
         var tab = new TabPage("Pedidos / Cotizaciones") { Padding = new Padding(6) };
@@ -97,7 +89,7 @@ internal sealed class PrincipalForm : Form
         var barra = Ui.Barra(new Label { Text = "PEDIDOS", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
             Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarPedidosCotizaciones)),
             Ui.Boton("Nuevo pedido", async (_, _) => await Ui.Ejecutar(NuevoPedido)),
-            Ui.Boton("Cotizar pedido", async (_, _) => await Ui.Ejecutar(CotizarPedido)),
+            Ui.Boton("Emitir cotizacion", async (_, _) => await Ui.Ejecutar(CotizarPedido)),
             Ui.Boton("Ver detalle", (_, _) => VerDetallePedido()));
         superiores.Controls.Add(pedidos); superiores.Controls.Add(barra);
         contenedor.Panel1.Controls.Add(superiores);
@@ -114,7 +106,6 @@ internal sealed class PrincipalForm : Form
         return tab;
     }
 
-    // Crea las acciones de ordenes.
     private TabPage CrearTabOrdenes()
     {
         return ConTab("Ordenes de compra", ordenes,
@@ -123,7 +114,6 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Ver factura", async (_, _) => await Ui.Ejecutar(VerFactura)));
     }
 
-    // Crea las acciones de facturas y pagos.
     private TabPage CrearTabFacturas()
     {
         return ConTab("Facturas y pagos", facturas,
@@ -132,7 +122,6 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Ver / imprimir", async (_, _) => await Ui.Ejecutar(VerImprimirFactura)));
     }
 
-    // Crea las acciones de remitos.
     private TabPage CrearTabRemitos()
     {
         return ConTab("Remitos / Entregas", remitos,
@@ -143,31 +132,23 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Ver / imprimir", async (_, _) => await Ui.Ejecutar(VerImprimirRemito)));
     }
 
-    // Actualiza la pestaña activa.
     private Task RefrescarActual() => tabs.SelectedIndex switch
     {
         0 => RefrescarClientes(), 1 => RefrescarProductos(), 2 => RefrescarPedidosCotizaciones(),
         3 => RefrescarOrdenes(), 4 => RefrescarFacturas(), 5 => RefrescarRemitos(), _ => Task.CompletedTask
     };
 
-    // Consulta los clientes.
     private async Task RefrescarClientes() => Ui.Datos(clientes, await api.ObtenerAsync<List<ClienteDto>>("api/clientes"));
-    // Consulta los productos.
     private async Task RefrescarProductos() => Ui.Datos(productos, await api.ObtenerAsync<List<ProductoDto>>("api/productos"));
-    // Consulta pedidos y cotizaciones.
     private async Task RefrescarPedidosCotizaciones()
     {
         Ui.Datos(pedidos, await api.ObtenerAsync<List<PedidoDto>>("api/minoristas/pedidos"));
         Ui.Datos(cotizaciones, await api.ObtenerAsync<List<CotizacionDto>>("api/minoristas/cotizaciones"));
     }
-    // Consulta las ordenes.
     private async Task RefrescarOrdenes() => Ui.Datos(ordenes, await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes"));
-    // Consulta las facturas.
     private async Task RefrescarFacturas() => Ui.Datos(facturas, await api.ObtenerAsync<List<FacturaDto>>("api/minoristas/facturas"));
-    // Consulta los remitos.
     private async Task RefrescarRemitos() => Ui.Datos(remitos, await api.ObtenerAsync<List<RemitoDto>>("api/minoristas/remitos"));
 
-    // Registra un cliente.
     private async Task NuevoCliente()
     {
         using var form = new ClienteForm();
@@ -176,7 +157,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarClientes();
     }
 
-    // Modifica el cliente seleccionado.
     private async Task EditarCliente()
     {
         if (Ui.Seleccion<ClienteDto>(clientes) is not { } item) { Ui.Aviso("Seleccione un cliente para editar."); return; }
@@ -187,7 +167,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarClientes();
     }
 
-    // Da de baja un cliente.
     private async Task BajaCliente()
     {
         if (Ui.Seleccion<ClienteDto>(clientes) is not { Activo: true } item)
@@ -197,7 +176,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarClientes();
     }
 
-    // Registra un producto.
     private async Task NuevoProducto()
     {
         using var form = new ProductoForm();
@@ -206,7 +184,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarProductos();
     }
 
-    // Modifica el producto seleccionado.
     private async Task EditarProducto()
     {
         if (Ui.Seleccion<ProductoDto>(productos) is not { } item) { Ui.Aviso("Seleccione un producto para editar."); return; }
@@ -217,7 +194,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarProductos();
     }
 
-    // Da de baja un producto.
     private async Task BajaProducto()
     {
         if (Ui.Seleccion<ProductoDto>(productos) is not { Activo: true } item)
@@ -227,12 +203,11 @@ internal sealed class PrincipalForm : Form
         await RefrescarProductos();
     }
 
-    // Registra un pedido con productos.
     private async Task NuevoPedido()
     {
         var listaClientes = await api.ObtenerAsync<List<ClienteDto>>("api/clientes");
         var listaProductos = await api.ObtenerAsync<List<ProductoDto>>("api/productos");
-        if (!listaClientes.Any(c => c.Activo))
+        if (!listaClientes.Any(c => c.Activo && c.Categoria == "Minorista"))
         { Ui.Aviso("No hay clientes activos para registrar un pedido."); return; }
         if (!listaProductos.Any(p => p.Activo))
         { Ui.Aviso("No hay productos activos para registrar un pedido."); return; }
@@ -242,17 +217,15 @@ internal sealed class PrincipalForm : Form
         await RefrescarPedidosCotizaciones();
     }
 
-    // Emite una cotizacion para el pedido.
     private async Task CotizarPedido()
     {
         if (Ui.Seleccion<PedidoDto>(pedidos) is not { } item) { Ui.Aviso("Seleccione un pedido para cotizar."); return; }
         if (item.Estado != "Pendiente") { Ui.Aviso("Solo se puede cotizar un pedido pendiente."); return; }
-        if (!Ui.Confirmar($"Cotizar el pedido {item.PedidoID} con los precios registrados?")) return;
+        if (!Ui.ConfirmarCotizacion(this, item.PedidoID)) return;
         await api.CrearAsync($"api/minoristas/pedidos/{item.PedidoID}/cotizar", new { });
         await RefrescarPedidosCotizaciones();
     }
 
-    // Registra una orden de compra.
     private async Task NuevaOrden()
     {
         var cotizacionesDisponibles = (await api.ObtenerAsync<List<CotizacionDto>>("api/minoristas/cotizaciones"))
@@ -266,7 +239,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarOrdenes();
     }
 
-    // Muestra la factura asociada a la orden.
     private async Task VerFactura()
     {
         if (Ui.Seleccion<OrdenDto>(ordenes) is not { } orden) { Ui.Aviso("Seleccione una orden de compra."); return; }
@@ -276,7 +248,6 @@ internal sealed class PrincipalForm : Form
         Ui.Aviso($"Factura: {factura.NumeroFactura}\nTotal: {factura.ImporteTotal:N2}\nPagado: {factura.TotalPagado:N2}\nSaldo: {factura.Saldo:N2}\nEstado: {factura.EstadoPago}");
     }
 
-    // Registra un pago de factura.
     private async Task NuevoPago()
     {
         if (Ui.Seleccion<FacturaDto>(facturas) is not { } factura) { Ui.Aviso("Seleccione una factura."); return; }
@@ -287,7 +258,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarFacturas();
     }
 
-    // Prepara un remito de entrega.
     private async Task NuevoRemito()
     {
         var ordenesActuales = await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes");
@@ -302,7 +272,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarRemitos();
     }
 
-    // Confirma la entrega del remito.
     private async Task EntregarRemito()
     {
         if (Ui.Seleccion<RemitoDto>(remitos) is not { Estado: "Preparado" } remito) { Ui.Aviso("Solo puede confirmar remitos preparados."); return; }
@@ -311,7 +280,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarRemitos();
     }
 
-    // Anula el remito y repone stock.
     private async Task AnularRemito()
     {
         if (Ui.Seleccion<RemitoDto>(remitos) is not { Estado: "Preparado" } remito) { Ui.Aviso("Solo puede anular remitos preparados."); return; }
@@ -320,7 +288,6 @@ internal sealed class PrincipalForm : Form
         await RefrescarRemitos();
     }
 
-    // Muestra el detalle del pedido.
     private void VerDetallePedido()
     {
         if (Ui.Seleccion<PedidoDto>(pedidos) is not { } pedido) { Ui.Aviso("Seleccione un pedido para ver el detalle."); return; }
@@ -333,7 +300,6 @@ internal sealed class PrincipalForm : Form
         documento.ShowDialog(this);
     }
 
-    // Abre la factura para imprimir.
     private async Task VerImprimirFactura()
     {
         if (Ui.Seleccion<FacturaDto>(facturas) is not { } factura) { Ui.Aviso("Seleccione una factura."); return; }
@@ -352,7 +318,6 @@ internal sealed class PrincipalForm : Form
         documento.ShowDialog(this);
     }
 
-    // Abre el remito para imprimir.
     private async Task VerImprimirRemito()
     {
         if (Ui.Seleccion<RemitoDto>(remitos) is not { } remito) { Ui.Aviso("Seleccione un remito para imprimir."); return; }

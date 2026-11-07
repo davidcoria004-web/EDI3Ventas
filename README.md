@@ -1,29 +1,29 @@
-# EDI3Ventas - TP Final EDI 3
+# TP8 - Ventas Minoristas
 
-Sistema de ventas minoristas. Solucion .NET 10, SQL Server y cliente Windows Forms nativo.
+Requisitos: .NET SDK 10, SQL Server LocalDB y sqlcmd.
 
-## Estructura
-- `EDI3Ventas/`: ASP.NET Core Web API; clientes, productos y circuito minorista.
-- `EDI3Ventas.Cliente/`: interfaz Windows Forms y consumo HTTP.
-- `SQL/`: instalacion, extension y verificacion del esquema.
+Desde la carpeta TP8, instalar la base nueva:
 
-## Compilacion
 ```powershell
-dotnet restore .\EDI3Ventas.slnx
-dotnet build .\EDI3Ventas.slnx -c Release --no-restore
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -b -i .\SQL\01_Base_SQLedi3.sql
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -b -i .\SQL\02_Ampliar_Cotizaciones.sql
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -b -i .\SQL\04_Categoria_y_FechaSolicitada.sql
 ```
 
-## Ejecucion (dos terminales)
+Compilar:
+
 ```powershell
-dotnet run --project .\EDI3Ventas\EDI3Ventas.csproj --launch-profile http
-```
-```powershell
-dotnet run --project .\EDI3Ventas.Cliente\EDI3Ventas.Cliente.csproj
+dotnet build .\TP8.slnx -c Release
 ```
 
-La API debe usar la cadena de conexion `VentasDB` para SQL Server. El cliente utiliza por defecto `http://localhost:5232/`.
+API:
 
-## SQL
-Ejecutar `SQL/01_Base_SQLedi3.sql` y `SQL/02_Ampliar_Cotizaciones.sql` solo sobre la instancia de prueba correspondiente. Comprobar con `SQL/03_Verificar_Esquema.sql`. No publicar datos ni respaldos de la base.
+```powershell
+dotnet run -c Release --project .\Api\EDI3Ventas.csproj --launch-profile http
+```
 
-## Notas
+Cliente (segunda terminal):
+
+```powershell
+dotnet run -c Release --project .\Cliente\EDI3Ventas.Cliente.csproj
+```

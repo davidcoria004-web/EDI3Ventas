@@ -19,7 +19,6 @@ public class ClientesController : ControllerBase
                 "No se encontro la conexion VentasDB.");
     }
 
-    // GET: api/clientes
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
     {
@@ -30,7 +29,7 @@ public class ClientesController : ControllerBase
 
         const string sql = """
             SELECT ClienteID, Nombre, Apellido, Documento,
-                   Email, Telefono, Direccion, FechaAlta, Activo
+                   Email, Telefono, Direccion, FechaAlta, Activo, Categoria
             FROM dbo.Cliente
             ORDER BY Apellido, Nombre;
             """;
@@ -46,7 +45,6 @@ public class ClientesController : ControllerBase
         return Ok(clientes);
     }
 
-    // GET: api/clientes/5
     [HttpGet("{id:int}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {
@@ -55,7 +53,7 @@ public class ClientesController : ControllerBase
 
         const string sql = """
             SELECT ClienteID, Nombre, Apellido, Documento,
-                   Email, Telefono, Direccion, FechaAlta, Activo
+                   Email, Telefono, Direccion, FechaAlta, Activo, Categoria
             FROM dbo.Cliente
             WHERE ClienteID = @Id;
             """;
@@ -71,7 +69,6 @@ public class ClientesController : ControllerBase
         return Ok(LeerCliente(rd));
     }
 
-    // POST: api/clientes
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] ClienteRequest cliente)
     {
@@ -111,7 +108,6 @@ public class ClientesController : ControllerBase
             new { clienteID = id, mensaje = "Cliente creado correctamente." });
     }
 
-    // PUT: api/clientes/5
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id, [FromBody] ClienteRequest cliente)
@@ -151,8 +147,6 @@ public class ClientesController : ControllerBase
         return Ok(new { mensaje = "Cliente actualizado correctamente." });
     }
 
-    // DELETE: api/clientes/5
-    // Baja lógica: conserva el registro en la base de datos.
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {
@@ -208,7 +202,8 @@ public class ClientesController : ControllerBase
                 ? null : rd["Direccion"].ToString(),
             FechaAlta = rd["FechaAlta"] is DBNull
                 ? null : Convert.ToDateTime(rd["FechaAlta"]),
-            Activo = Convert.ToBoolean(rd["Activo"])
+            Activo = Convert.ToBoolean(rd["Activo"]),
+            Categoria = rd.GetString(rd.GetOrdinal("Categoria"))
         };
     }
 }

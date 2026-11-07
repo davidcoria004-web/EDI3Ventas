@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 
 namespace EDI3Ventas.Cliente.Infraestructura;
 
-/// <summary>Cliente HTTP comun; la UI nunca accede directamente a SQL Server.</summary>
 internal sealed class ApiClient
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
@@ -17,7 +16,6 @@ internal sealed class ApiClient
 
     public string BaseUrl { get; set; } = "http://localhost:5232/";
 
-    // Forma la URL del endpoint.
     private Uri Url(string ruta)
     {
         if (!Uri.TryCreate(BaseUrl.Trim().TrimEnd('/') + "/", UriKind.Absolute, out var raiz) ||
@@ -26,7 +24,6 @@ internal sealed class ApiClient
         return new Uri(raiz, ruta.TrimStart('/'));
     }
 
-    // Consulta la API mediante GET.
     public async Task<T> ObtenerAsync<T>(string ruta)
     {
         using var res = await Http.GetAsync(Url(ruta));
@@ -35,7 +32,6 @@ internal sealed class ApiClient
                ?? throw new InvalidOperationException("La API devolvio una respuesta vacia.");
     }
 
-    // Envia solicitudes HTTP con JSON.
     public async Task<JsonElement> EnviarAsync(HttpMethod verbo, string ruta, object? cuerpo = null)
     {
         using var msg = new HttpRequestMessage(verbo, Url(ruta));
@@ -49,14 +45,10 @@ internal sealed class ApiClient
         catch (JsonException) { return default; }
     }
 
-    // Envia una solicitud POST.
     public Task<JsonElement> CrearAsync(string ruta, object body) => EnviarAsync(HttpMethod.Post, ruta, body);
-    // Envia una solicitud PUT.
     public Task<JsonElement> ActualizarAsync(string ruta, object body) => EnviarAsync(HttpMethod.Put, ruta, body);
-    // Envia una solicitud DELETE.
     public Task<JsonElement> EliminarAsync(string ruta) => EnviarAsync(HttpMethod.Delete, ruta);
 
-    // Comprueba la respuesta HTTP.
     private static async Task Validar(HttpResponseMessage respuesta)
     {
         if (respuesta.IsSuccessStatusCode) return;

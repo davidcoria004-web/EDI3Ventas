@@ -1,4 +1,4 @@
-﻿namespace EDI3Ventas.Models;
+namespace EDI3Ventas.Models;
 
 public class Cliente
 {
@@ -9,6 +9,7 @@ public class Cliente
     public string? Email { get; set; }
     public string? Telefono { get; set; }
     public string? Direccion { get; set; }
+    public string Categoria { get; set; } = "Minorista";
     public DateTime? FechaAlta { get; set; }
     public bool Activo { get; set; } = true;
 }

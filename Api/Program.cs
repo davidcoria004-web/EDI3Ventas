@@ -15,16 +15,12 @@ app.UseSwaggerUI();
 app.MapControllers();
 
 
-// Cadena de conexión
 string connectionString =
     builder.Configuration.GetConnectionString("VentasDB")
     ?? throw new InvalidOperationException(
         "No se encontro la conexion VentasDB en appsettings.json.");
 
-// Endpoint principal
-//app.MapGet("/", () => "API EDI3Ventas funcionando");
 
-// Comprobar conexión a SQL Server
 app.MapGet("/api/estado-db", async () =>
 {
     try

@@ -19,7 +19,6 @@ public class ProductosController : ControllerBase
                 "No se encontro la conexion VentasDB.");
     }
 
-    // GET: api/productos
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
     {
@@ -46,7 +45,6 @@ public class ProductosController : ControllerBase
         return Ok(productos);
     }
 
-    // GET: api/productos/1
     [HttpGet("{id:int}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {
@@ -71,7 +69,6 @@ public class ProductosController : ControllerBase
         return Ok(LeerProducto(rd));
     }
 
-    // POST: api/productos
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] ProductoRequest producto)
     {
@@ -131,7 +128,6 @@ public class ProductosController : ControllerBase
         }
     }
 
-    // PUT: api/productos/1
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id, [FromBody] ProductoRequest producto)
@@ -192,8 +188,6 @@ public class ProductosController : ControllerBase
         }
     }
 
-    // DELETE: api/productos/1
-    // Baja lógica: conserva el registro.
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Cliente/EDI3Ventas.Cliente.csproj" />
+  <Project Path="Api/EDI3Ventas.csproj" />
+</Solution>
