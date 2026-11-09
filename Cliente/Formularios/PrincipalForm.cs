@@ -212,7 +212,6 @@ internal sealed class PrincipalForm : Form
         await api.CrearAsync("api/minoristas/ordenes", new { cotizacionID = cotizacionId, numeroOC });
 
         await RefrescarPedidosOrdenes();
-        Ui.Aviso($"Pedido {pedidoId}, cotizacion y orden de compra {numeroOC} generados.");
     }
 
     private static int ObtenerIdCreado(System.Text.Json.JsonElement respuesta, string propiedad)
