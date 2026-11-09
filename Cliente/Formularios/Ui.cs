@@ -54,44 +54,6 @@ internal static class Ui
     public static T? Seleccion<T>(DataGridView tabla) where T : class =>
         tabla.CurrentRow?.DataBoundItem as T;
 
-    public static bool ConfirmarCotizacion(IWin32Window propietario, int pedidoId)
-    {
-        using var ventana = new Form
-        {
-            Text = "Emitir cotizacion",
-            FormBorderStyle = FormBorderStyle.FixedDialog,
-            StartPosition = FormStartPosition.CenterParent,
-            ClientSize = new Size(430, 130),
-            MaximizeBox = false,
-            MinimizeBox = false,
-            ShowInTaskbar = false
-        };
-        var mensaje = new Label
-        {
-            Text = $"Emitir la cotizacion del pedido {pedidoId}?",
-            Location = new Point(16, 14),
-            Size = new Size(398, 54),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-        var aceptar = new Button
-        {
-            Text = "Aceptar",
-            Location = new Point(218, 86),
-            Size = new Size(92, 30),
-            DialogResult = DialogResult.OK
-        };
-        var rechazar = new Button
-        {
-            Text = "Rechazar",
-            Location = new Point(320, 86),
-            Size = new Size(92, 30),
-            DialogResult = DialogResult.Cancel
-        };
-        ventana.Controls.AddRange(new Control[] { mensaje, aceptar, rechazar });
-        ventana.AcceptButton = aceptar;
-        ventana.CancelButton = rechazar;
-        return ventana.ShowDialog(propietario) == DialogResult.OK;
-    }
     public static bool Confirmar(string pregunta) =>
         MessageBox.Show(pregunta, "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
 

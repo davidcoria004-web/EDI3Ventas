@@ -136,7 +136,7 @@ internal sealed class PedidoForm : EdicionForm
         Detalles = lineas.Select(x => new LineaPedidoNueva { ProductoID = x.ProductoID, Cantidad = x.Cantidad }).ToList()
     };
 
-    public PedidoForm(IEnumerable<ClienteDto> clientes, IEnumerable<ProductoDto> productos) : base("Nuevo pedido minorista", 590)
+    public PedidoForm(IEnumerable<ClienteDto> clientes, IEnumerable<ProductoDto> productos) : base("Nuevo Orden de Compra", 590)
     {
         Width = 780;
         cliente.Items.AddRange(clientes.Where(x => x.Activo && x.Categoria == "Minorista").Select(x => new Opcion(x.ClienteID, x.Presentacion)).ToArray());
@@ -187,27 +187,6 @@ internal sealed class PedidoForm : EdicionForm
 internal sealed record Opcion(int Id, string Etiqueta)
 {
     public override string ToString() => Etiqueta;
-}
-
-internal sealed class OrdenForm : EdicionForm
-{
-    private readonly ComboBox cotizacion = new() { DropDownStyle = ComboBoxStyle.DropDownList };
-    private readonly TextBox numero;
-    public int CotizacionID => (cotizacion.SelectedItem as Opcion)?.Id ?? 0;
-    public string NumeroOC => numero.Text.Trim();
-    public OrdenForm(IEnumerable<CotizacionDto> disponibles) : base("Registrar orden de compra", 230)
-    {
-        cotizacion.Items.AddRange(disponibles.Select(x => new Opcion(x.CotizacionID,
-            $"{x.NumeroCotizacion} - pedido {x.PedidoID} - ${x.ImporteTotal:N2}")).ToArray());
-        if (cotizacion.Items.Count > 0) cotizacion.SelectedIndex = 0;
-        Agregar("Cotizacion *", cotizacion);
-        numero = Agregar("Numero OC *", Entrada("", 30));
-    }
-    protected override bool Validar()
-    {
-        if (CotizacionID <= 0) throw new InvalidOperationException("No hay cotizaciones disponibles.");
-        Requerido(numero, "Numero OC"); return true;
-    }
 }
 
 internal sealed class PagoForm : EdicionForm

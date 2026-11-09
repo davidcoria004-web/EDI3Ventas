@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Printing;
 
 namespace EDI3Ventas.Cliente.Formularios;

@@ -12,7 +12,7 @@ internal sealed class PrincipalForm : Form
     private readonly Label estado = new() { Text = "Sin comprobar", AutoSize = true, Padding = new Padding(8, 8, 0, 0) };
     private readonly TabControl tabs = new() { Dock = DockStyle.Fill };
     private readonly DataGridView clientes = Ui.Tabla(), productos = Ui.Tabla(), pedidos = Ui.Tabla(),
-        cotizaciones = Ui.Tabla(), ordenes = Ui.Tabla(), facturas = Ui.Tabla(), remitos = Ui.Tabla();
+        ordenes = Ui.Tabla(), facturas = Ui.Tabla(), remitos = Ui.Tabla();
 
     public PrincipalForm()
     {
@@ -30,7 +30,6 @@ internal sealed class PrincipalForm : Form
         tabs.TabPages.Add(CrearTabClientes());
         tabs.TabPages.Add(CrearTabProductos());
         tabs.TabPages.Add(CrearTabPedidos());
-        tabs.TabPages.Add(CrearTabOrdenes());
         tabs.TabPages.Add(CrearTabFacturas());
         tabs.TabPages.Add(CrearTabRemitos());
         tabs.SelectedIndexChanged += async (_, _) => await Ui.Ejecutar(RefrescarActual);
@@ -83,19 +82,19 @@ internal sealed class PrincipalForm : Form
 
     private TabPage CrearTabPedidos()
     {
-        var tab = new TabPage("Pedidos / Cotizaciones") { Padding = new Padding(6) };
+        var tab = new TabPage("Pedidos y órdenes de compra") { Padding = new Padding(6) };
         var contenedor = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
         var superiores = new Panel { Dock = DockStyle.Fill };
-        var barra = Ui.Barra(new Label { Text = "PEDIDOS", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
-            Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarPedidosCotizaciones)),
+        var barra = Ui.Barra(new Label { Text = "Pedidos", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
+            Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarPedidosOrdenes)),
             Ui.Boton("Nuevo pedido", async (_, _) => await Ui.Ejecutar(NuevoPedido)),
-            Ui.Boton("Emitir cotizacion", async (_, _) => await Ui.Ejecutar(CotizarPedido)),
             Ui.Boton("Ver detalle", (_, _) => VerDetallePedido()));
         superiores.Controls.Add(pedidos); superiores.Controls.Add(barra);
         contenedor.Panel1.Controls.Add(superiores);
         var inferiores = new Panel { Dock = DockStyle.Fill };
-        inferiores.Controls.Add(cotizaciones);
-        inferiores.Controls.Add(Ui.Barra(new Label { Text = "COTIZACIONES EMITIDAS", AutoSize = true, Padding = new Padding(4, 10, 8, 0) }));
+        inferiores.Controls.Add(ordenes);
+        inferiores.Controls.Add(Ui.Barra(new Label { Text = "Órdenes de compra", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
+            Ui.Boton("Ver factura", async (_, _) => await Ui.Ejecutar(VerFactura))));
         contenedor.Panel2.Controls.Add(inferiores);
         tab.Controls.Add(contenedor);
         tab.Enter += (_, _) =>
@@ -104,14 +103,6 @@ internal sealed class PrincipalForm : Form
                 contenedor.SplitterDistance = contenedor.Height / 2;
         };
         return tab;
-    }
-
-    private TabPage CrearTabOrdenes()
-    {
-        return ConTab("Ordenes de compra", ordenes,
-            Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarOrdenes)),
-            Ui.Boton("Registrar OC", async (_, _) => await Ui.Ejecutar(NuevaOrden)),
-            Ui.Boton("Ver factura", async (_, _) => await Ui.Ejecutar(VerFactura)));
     }
 
     private TabPage CrearTabFacturas()
@@ -134,18 +125,17 @@ internal sealed class PrincipalForm : Form
 
     private Task RefrescarActual() => tabs.SelectedIndex switch
     {
-        0 => RefrescarClientes(), 1 => RefrescarProductos(), 2 => RefrescarPedidosCotizaciones(),
-        3 => RefrescarOrdenes(), 4 => RefrescarFacturas(), 5 => RefrescarRemitos(), _ => Task.CompletedTask
+        0 => RefrescarClientes(), 1 => RefrescarProductos(), 2 => RefrescarPedidosOrdenes(),
+        3 => RefrescarFacturas(), 4 => RefrescarRemitos(), _ => Task.CompletedTask
     };
 
     private async Task RefrescarClientes() => Ui.Datos(clientes, await api.ObtenerAsync<List<ClienteDto>>("api/clientes"));
     private async Task RefrescarProductos() => Ui.Datos(productos, await api.ObtenerAsync<List<ProductoDto>>("api/productos"));
-    private async Task RefrescarPedidosCotizaciones()
+    private async Task RefrescarPedidosOrdenes()
     {
         Ui.Datos(pedidos, await api.ObtenerAsync<List<PedidoDto>>("api/minoristas/pedidos"));
-        Ui.Datos(cotizaciones, await api.ObtenerAsync<List<CotizacionDto>>("api/minoristas/cotizaciones"));
+        Ui.Datos(ordenes, await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes"));
     }
-    private async Task RefrescarOrdenes() => Ui.Datos(ordenes, await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes"));
     private async Task RefrescarFacturas() => Ui.Datos(facturas, await api.ObtenerAsync<List<FacturaDto>>("api/minoristas/facturas"));
     private async Task RefrescarRemitos() => Ui.Datos(remitos, await api.ObtenerAsync<List<RemitoDto>>("api/minoristas/remitos"));
 
@@ -213,30 +203,25 @@ internal sealed class PrincipalForm : Form
         { Ui.Aviso("No hay productos activos para registrar un pedido."); return; }
         using var form = new PedidoForm(listaClientes, listaProductos);
         if (form.ShowDialog(this) != DialogResult.OK) return;
-        await api.CrearAsync("api/minoristas/pedidos", form.Resultado);
-        await RefrescarPedidosCotizaciones();
+
+        var pedido = await api.CrearAsync("api/minoristas/pedidos", form.Resultado);
+        int pedidoId = ObtenerIdCreado(pedido, "pedidoID");
+        var cotizacion = await api.CrearAsync($"api/minoristas/pedidos/{pedidoId}/cotizar", new { });
+        int cotizacionId = ObtenerIdCreado(cotizacion, "cotizacionID");
+        string numeroOC = $"OC-{pedidoId:D6}";
+        await api.CrearAsync("api/minoristas/ordenes", new { cotizacionID = cotizacionId, numeroOC });
+
+        await RefrescarPedidosOrdenes();
+        Ui.Aviso($"Pedido {pedidoId}, cotizacion y orden de compra {numeroOC} generados.");
     }
 
-    private async Task CotizarPedido()
+    private static int ObtenerIdCreado(System.Text.Json.JsonElement respuesta, string propiedad)
     {
-        if (Ui.Seleccion<PedidoDto>(pedidos) is not { } item) { Ui.Aviso("Seleccione un pedido para cotizar."); return; }
-        if (item.Estado != "Pendiente") { Ui.Aviso("Solo se puede cotizar un pedido pendiente."); return; }
-        if (!Ui.ConfirmarCotizacion(this, item.PedidoID)) return;
-        await api.CrearAsync($"api/minoristas/pedidos/{item.PedidoID}/cotizar", new { });
-        await RefrescarPedidosCotizaciones();
-    }
-
-    private async Task NuevaOrden()
-    {
-        var cotizacionesDisponibles = (await api.ObtenerAsync<List<CotizacionDto>>("api/minoristas/cotizaciones"))
-            .Where(c => c.Estado == "Emitida").ToList();
-        if (cotizacionesDisponibles.Count == 0)
-        { Ui.Aviso("No hay cotizaciones emitidas para registrar una orden de compra."); return; }
-        using var form = new OrdenForm(cotizacionesDisponibles);
-        if (form.ShowDialog(this) != DialogResult.OK) return;
-        await api.CrearAsync("api/minoristas/ordenes", new { cotizacionID = form.CotizacionID, numeroOC = form.NumeroOC });
-        Ui.Aviso($"Orden {form.NumeroOC} registrada. Factura emitida.");
-        await RefrescarOrdenes();
+        if (respuesta.ValueKind != System.Text.Json.JsonValueKind.Object ||
+            !respuesta.TryGetProperty(propiedad, out var valor) ||
+            !valor.TryGetInt32(out int id) || id <= 0)
+            throw new InvalidOperationException($"La API no devolvio un identificador valido para {propiedad}.");
+        return id;
     }
 
     private async Task VerFactura()
