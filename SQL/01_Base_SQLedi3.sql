@@ -27,30 +27,23 @@ CREATE TABLE dbo.Producto (
     Activo BIT NOT NULL DEFAULT 1
 );
 GO
-IF OBJECT_ID(N'dbo.Pedido', N'U') IS NULL
-CREATE TABLE dbo.Pedido (
-    PedidoID INT IDENTITY(1,1) PRIMARY KEY,
-    ClienteID INT NOT NULL REFERENCES dbo.Cliente(ClienteID),
-    FechaPedido DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
-    Estado NVARCHAR(20) NOT NULL DEFAULT N'Pendiente'
-);
-GO
-IF OBJECT_ID(N'dbo.DetallePedido', N'U') IS NULL
-CREATE TABLE dbo.DetallePedido (
-    DetallePedidoID INT IDENTITY(1,1) PRIMARY KEY,
-    PedidoID INT NOT NULL REFERENCES dbo.Pedido(PedidoID),
-    ProductoID INT NOT NULL REFERENCES dbo.Producto(ProductoID),
-    Cantidad DECIMAL(12,3) NOT NULL CHECK (Cantidad > 0),
-    PrecioUnitario DECIMAL(12,2) NOT NULL CHECK (PrecioUnitario >= 0)
-);
-GO
 IF OBJECT_ID(N'dbo.OrdenCompra', N'U') IS NULL
 CREATE TABLE dbo.OrdenCompra (
     OrdenCompraID INT IDENTITY(1,1) PRIMARY KEY,
-    PedidoID INT NOT NULL UNIQUE REFERENCES dbo.Pedido(PedidoID),
+    ClienteID INT NOT NULL REFERENCES dbo.Cliente(ClienteID),
     NumeroOC NVARCHAR(30) NOT NULL UNIQUE,
     FechaOC DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    FechaEntregaSolicitada DATE NULL,
     Estado NVARCHAR(20) NOT NULL DEFAULT N'Registrada'
+);
+GO
+IF OBJECT_ID(N'dbo.DetalleOrdenCompra', N'U') IS NULL
+CREATE TABLE dbo.DetalleOrdenCompra (
+    DetalleOrdenCompraID INT IDENTITY(1,1) PRIMARY KEY,
+    OrdenCompraID INT NOT NULL REFERENCES dbo.OrdenCompra(OrdenCompraID),
+    ProductoID INT NOT NULL REFERENCES dbo.Producto(ProductoID),
+    Cantidad DECIMAL(12,3) NOT NULL CHECK (Cantidad > 0),
+    PrecioUnitario DECIMAL(12,2) NOT NULL CHECK (PrecioUnitario >= 0)
 );
 GO
 IF OBJECT_ID(N'dbo.Factura', N'U') IS NULL

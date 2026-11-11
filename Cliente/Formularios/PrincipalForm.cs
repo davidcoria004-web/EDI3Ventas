@@ -11,7 +11,7 @@ internal sealed class PrincipalForm : Form
     private readonly TextBox url = new() { Width = 280 };
     private readonly Label estado = new() { Text = "Sin comprobar", AutoSize = true, Padding = new Padding(8, 8, 0, 0) };
     private readonly TabControl tabs = new() { Dock = DockStyle.Fill };
-    private readonly DataGridView clientes = Ui.Tabla(), productos = Ui.Tabla(), pedidos = Ui.Tabla(),
+    private readonly DataGridView clientes = Ui.Tabla(), productos = Ui.Tabla(),
         ordenes = Ui.Tabla(), facturas = Ui.Tabla(), remitos = Ui.Tabla();
 
     public PrincipalForm()
@@ -29,7 +29,7 @@ internal sealed class PrincipalForm : Form
 
         tabs.TabPages.Add(CrearTabClientes());
         tabs.TabPages.Add(CrearTabProductos());
-        tabs.TabPages.Add(CrearTabPedidos());
+        tabs.TabPages.Add(CrearTabOrdenes());
         tabs.TabPages.Add(CrearTabFacturas());
         tabs.TabPages.Add(CrearTabRemitos());
         tabs.SelectedIndexChanged += async (_, _) => await Ui.Ejecutar(RefrescarActual);
@@ -80,29 +80,13 @@ internal sealed class PrincipalForm : Form
             Ui.Boton("Baja logica", async (_, _) => await Ui.Ejecutar(BajaProducto)));
     }
 
-    private TabPage CrearTabPedidos()
+    private TabPage CrearTabOrdenes()
     {
-        var tab = new TabPage("Pedidos y órdenes de compra") { Padding = new Padding(6) };
-        var contenedor = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
-        var superiores = new Panel { Dock = DockStyle.Fill };
-        var barra = Ui.Barra(new Label { Text = "Pedidos", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
-            Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarPedidosOrdenes)),
-            Ui.Boton("Nuevo pedido", async (_, _) => await Ui.Ejecutar(NuevoPedido)),
-            Ui.Boton("Ver detalle", (_, _) => VerDetallePedido()));
-        superiores.Controls.Add(pedidos); superiores.Controls.Add(barra);
-        contenedor.Panel1.Controls.Add(superiores);
-        var inferiores = new Panel { Dock = DockStyle.Fill };
-        inferiores.Controls.Add(ordenes);
-        inferiores.Controls.Add(Ui.Barra(new Label { Text = "Órdenes de compra", AutoSize = true, Padding = new Padding(4, 10, 8, 0) },
-            Ui.Boton("Ver factura", async (_, _) => await Ui.Ejecutar(VerFactura))));
-        contenedor.Panel2.Controls.Add(inferiores);
-        tab.Controls.Add(contenedor);
-        tab.Enter += (_, _) =>
-        {
-            if (contenedor.Height > 380 && contenedor.SplitterDistance < 160)
-                contenedor.SplitterDistance = contenedor.Height / 2;
-        };
-        return tab;
+        return ConTab("Órdenes de compra", ordenes,
+            Ui.Boton("Actualizar", async (_, _) => await Ui.Ejecutar(RefrescarOrdenes)),
+            Ui.Boton("Nueva orden", async (_, _) => await Ui.Ejecutar(NuevaOrdenCompra)),
+            Ui.Boton("Ver detalle", (_, _) => VerDetalleOrden()),
+            Ui.Boton("Ver factura", async (_, _) => await Ui.Ejecutar(VerFactura)));
     }
 
     private TabPage CrearTabFacturas()
@@ -125,17 +109,14 @@ internal sealed class PrincipalForm : Form
 
     private Task RefrescarActual() => tabs.SelectedIndex switch
     {
-        0 => RefrescarClientes(), 1 => RefrescarProductos(), 2 => RefrescarPedidosOrdenes(),
+        0 => RefrescarClientes(), 1 => RefrescarProductos(), 2 => RefrescarOrdenes(),
         3 => RefrescarFacturas(), 4 => RefrescarRemitos(), _ => Task.CompletedTask
     };
 
     private async Task RefrescarClientes() => Ui.Datos(clientes, await api.ObtenerAsync<List<ClienteDto>>("api/clientes"));
     private async Task RefrescarProductos() => Ui.Datos(productos, await api.ObtenerAsync<List<ProductoDto>>("api/productos"));
-    private async Task RefrescarPedidosOrdenes()
-    {
-        Ui.Datos(pedidos, await api.ObtenerAsync<List<PedidoDto>>("api/minoristas/pedidos"));
+    private async Task RefrescarOrdenes() =>
         Ui.Datos(ordenes, await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes"));
-    }
     private async Task RefrescarFacturas() => Ui.Datos(facturas, await api.ObtenerAsync<List<FacturaDto>>("api/minoristas/facturas"));
     private async Task RefrescarRemitos() => Ui.Datos(remitos, await api.ObtenerAsync<List<RemitoDto>>("api/minoristas/remitos"));
 
@@ -193,34 +174,18 @@ internal sealed class PrincipalForm : Form
         await RefrescarProductos();
     }
 
-    private async Task NuevoPedido()
+    private async Task NuevaOrdenCompra()
     {
         var listaClientes = await api.ObtenerAsync<List<ClienteDto>>("api/clientes");
         var listaProductos = await api.ObtenerAsync<List<ProductoDto>>("api/productos");
         if (!listaClientes.Any(c => c.Activo && c.Categoria == "Minorista"))
-        { Ui.Aviso("No hay clientes activos para registrar un pedido."); return; }
+        { Ui.Aviso("No hay clientes activos para registrar una orden."); return; }
         if (!listaProductos.Any(p => p.Activo))
-        { Ui.Aviso("No hay productos activos para registrar un pedido."); return; }
-        using var form = new PedidoForm(listaClientes, listaProductos);
+        { Ui.Aviso("No hay productos activos para registrar una orden."); return; }
+        using var form = new OrdenCompraForm(listaClientes, listaProductos);
         if (form.ShowDialog(this) != DialogResult.OK) return;
-
-        var pedido = await api.CrearAsync("api/minoristas/pedidos", form.Resultado);
-        int pedidoId = ObtenerIdCreado(pedido, "pedidoID");
-        var cotizacion = await api.CrearAsync($"api/minoristas/pedidos/{pedidoId}/cotizar", new { });
-        int cotizacionId = ObtenerIdCreado(cotizacion, "cotizacionID");
-        string numeroOC = $"OC-{pedidoId:D6}";
-        await api.CrearAsync("api/minoristas/ordenes", new { cotizacionID = cotizacionId, numeroOC });
-
-        await RefrescarPedidosOrdenes();
-    }
-
-    private static int ObtenerIdCreado(System.Text.Json.JsonElement respuesta, string propiedad)
-    {
-        if (respuesta.ValueKind != System.Text.Json.JsonValueKind.Object ||
-            !respuesta.TryGetProperty(propiedad, out var valor) ||
-            !valor.TryGetInt32(out int id) || id <= 0)
-            throw new InvalidOperationException($"La API no devolvio un identificador valido para {propiedad}.");
-        return id;
+        await api.CrearAsync("api/minoristas/ordenes", form.Resultado);
+        await RefrescarOrdenes();
     }
 
     private async Task VerFactura()
@@ -272,15 +237,15 @@ internal sealed class PrincipalForm : Form
         await RefrescarRemitos();
     }
 
-    private void VerDetallePedido()
+    private void VerDetalleOrden()
     {
-        if (Ui.Seleccion<PedidoDto>(pedidos) is not { } pedido) { Ui.Aviso("Seleccione un pedido para ver el detalle."); return; }
+        if (Ui.Seleccion<OrdenDto>(ordenes) is not { } orden) { Ui.Aviso("Seleccione una orden de compra para ver el detalle."); return; }
         string lineas = string.Join(Environment.NewLine,
-            pedido.Detalles.Select(d => $"{d.ProductoID,4}  {d.NombreProducto,-28} {d.Cantidad,9:N3}  $ {d.PrecioUnitario,10:N2}  $ {d.Subtotal,12:N2}"));
-        using var documento = new DocumentoForm("Pedido minorista", $"PEDIDO NRO {pedido.PedidoID}\r\n" +
-            $"Cliente: {pedido.Cliente}\r\nFecha: {pedido.FechaPedido:g}\r\nEstado: {pedido.Estado}\r\n\r\n" +
+            orden.Detalles.Select(d => $"{d.ProductoID,4}  {d.NombreProducto,-28} {d.Cantidad,9:N3}  $ {d.PrecioUnitario,10:N2}  $ {d.Subtotal,12:N2}"));
+        using var documento = new DocumentoForm("Orden de compra", $"ORDEN DE COMPRA: {orden.NumeroOC}\r\n" +
+            $"Cliente: {orden.Cliente}\r\nFecha: {orden.FechaOC:g}\r\nEntrega solicitada: {orden.FechaEntregaSolicitada:d}\r\nEstado: {orden.Estado}\r\n\r\n" +
             "Producto  Nombre                       Cantidad    Precio    Subtotal\r\n" + lineas +
-            $"\r\n\r\nTOTAL: $ {pedido.ImporteTotal:N2}");
+            $"\r\n\r\nTOTAL: $ {orden.ImporteTotal:N2}");
         documento.ShowDialog(this);
     }
 
@@ -289,9 +254,7 @@ internal sealed class PrincipalForm : Form
         if (Ui.Seleccion<FacturaDto>(facturas) is not { } factura) { Ui.Aviso("Seleccione una factura."); return; }
         var todasOrdenes = await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes");
         var orden = todasOrdenes.FirstOrDefault(o => o.OrdenCompraID == factura.OrdenCompraID);
-        var todosPedidos = await api.ObtenerAsync<List<PedidoDto>>("api/minoristas/pedidos");
-        var pedido = todosPedidos.FirstOrDefault(p => p.PedidoID == orden?.PedidoID);
-        string lineas = pedido == null ? "" : string.Join("\r\n", pedido.Detalles.Select(d =>
+        string lineas = orden == null ? "" : string.Join("\r\n", orden.Detalles.Select(d =>
             $"{d.NombreProducto,-30} {d.Cantidad,8:N3} x $ {d.PrecioUnitario,10:N2} = $ {d.Subtotal,12:N2}"));
         string contenido = $"DOCUMENTO INTERNO - NO FISCAL\r\nFACTURA: {factura.NumeroFactura}\r\n" +
             $"Fecha: {factura.FechaEmision:g}\r\nCliente: {factura.Cliente}\r\n" +
@@ -307,9 +270,7 @@ internal sealed class PrincipalForm : Form
         if (Ui.Seleccion<RemitoDto>(remitos) is not { } remito) { Ui.Aviso("Seleccione un remito para imprimir."); return; }
         var todasOrdenes = await api.ObtenerAsync<List<OrdenDto>>("api/minoristas/ordenes");
         var orden = todasOrdenes.FirstOrDefault(o => o.OrdenCompraID == remito.OrdenCompraID);
-        var todosPedidos = await api.ObtenerAsync<List<PedidoDto>>("api/minoristas/pedidos");
-        var pedido = todosPedidos.FirstOrDefault(p => p.PedidoID == orden?.PedidoID);
-        string lineas = pedido == null ? "" : string.Join("\r\n", pedido.Detalles.Select(d =>
+        string lineas = orden == null ? "" : string.Join("\r\n", orden.Detalles.Select(d =>
             $"{d.NombreProducto,-32} {d.Cantidad,9:N3}"));
         string contenido = $"REMITO DE SALIDA: {remito.NumeroRemito}\r\n" +
             $"Emision: {remito.FechaEmision:g}\r\nCliente: {remito.Cliente}\r\n" +

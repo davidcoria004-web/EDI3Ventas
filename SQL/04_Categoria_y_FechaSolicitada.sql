@@ -4,8 +4,8 @@ SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    IF OBJECT_ID(N'dbo.Cliente', N'U') IS NULL OR OBJECT_ID(N'dbo.Pedido', N'U') IS NULL
-        THROW 51010, 'Faltan las tablas Cliente o Pedido.', 1;
+    IF OBJECT_ID(N'dbo.Cliente', N'U') IS NULL OR OBJECT_ID(N'dbo.OrdenCompra', N'U') IS NULL
+        THROW 51010, 'Faltan las tablas Cliente o OrdenCompra.', 1;
 
     IF COL_LENGTH('dbo.Cliente', 'Categoria') IS NULL
         ALTER TABLE dbo.Cliente
@@ -21,7 +21,12 @@ BEGIN TRY
           ADD CONSTRAINT CK_Cliente_Categoria
           CHECK (Categoria IN (N''Minorista'', N''Mayorista'', N''Distribuidor''));';
 
-    IF COL_LENGTH('dbo.Pedido', 'FechaEntregaSolicitada') IS NULL
+    IF COL_LENGTH('dbo.OrdenCompra', 'FechaEntregaSolicitada') IS NULL
+        ALTER TABLE dbo.OrdenCompra
+        ADD FechaEntregaSolicitada DATE NULL;
+
+    IF OBJECT_ID(N'dbo.Pedido', N'U') IS NOT NULL
+       AND COL_LENGTH('dbo.Pedido', 'FechaEntregaSolicitada') IS NULL
         ALTER TABLE dbo.Pedido
         ADD FechaEntregaSolicitada DATE NULL;
 
@@ -32,5 +37,5 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
-SELECT N'Columnas de modelo minorista disponibles' AS Resultado;
+SELECT N'Columnas de cliente y orden de compra disponibles' AS Resultado;
 GO

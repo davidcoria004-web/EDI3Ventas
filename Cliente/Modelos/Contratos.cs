@@ -48,7 +48,7 @@ internal sealed class ProductoGuardar
     public decimal StockActual { get; set; }
 }
 
-internal sealed class LineaPedido
+internal sealed class LineaOrdenCompra
 {
     public int ProductoID { get; set; }
     public string NombreProducto { get; set; } = "";
@@ -57,52 +57,32 @@ internal sealed class LineaPedido
     public decimal Subtotal => Math.Round(Cantidad * PrecioUnitario, 2);
 }
 
-internal sealed class PedidoDto
-{
-    public int PedidoID { get; set; }
-    public int ClienteID { get; set; }
-    public string Cliente { get; set; } = "";
-    public DateTime FechaPedido { get; set; }
-    public DateTime? FechaEntregaSolicitada { get; set; }
-    public string Estado { get; set; } = "";
-    public decimal ImporteTotal { get; set; }
-    [Browsable(false)] public List<LineaPedido> Detalles { get; set; } = [];
-}
-
-internal sealed class LineaPedidoNueva
+internal sealed class LineaOrdenCompraNueva
 {
     public int ProductoID { get; set; }
     public decimal Cantidad { get; set; }
 }
 
-internal sealed class PedidoNuevo
+internal sealed class OrdenCompraNueva
 {
     public int ClienteID { get; set; }
     public DateTime FechaEntregaSolicitada { get; set; }
-    public List<LineaPedidoNueva> Detalles { get; set; } = [];
-}
-
-internal sealed class CotizacionDto
-{
-    public int CotizacionID { get; set; }
-    public int PedidoID { get; set; }
-    public string NumeroCotizacion { get; set; } = "";
-    public DateTime FechaCotizacion { get; set; }
-    public string Estado { get; set; } = "";
-    public decimal ImporteTotal { get; set; }
+    public List<LineaOrdenCompraNueva> Detalles { get; set; } = [];
 }
 
 internal sealed class OrdenDto
 {
     public int OrdenCompraID { get; set; }
-    public int PedidoID { get; set; }
+    public int ClienteID { get; set; }
     public string NumeroOC { get; set; } = "";
     public DateTime FechaOC { get; set; }
+    public DateTime? FechaEntregaSolicitada { get; set; }
     public string Estado { get; set; } = "";
     public string Cliente { get; set; } = "";
     public decimal ImporteTotal { get; set; }
     public int? FacturaID { get; set; }
     public string? EstadoPago { get; set; }
+    [Browsable(false)] public List<LineaOrdenCompra> Detalles { get; set; } = [];
 }
 
 internal sealed class FacturaDto

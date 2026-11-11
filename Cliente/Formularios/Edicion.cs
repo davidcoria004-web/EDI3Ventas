@@ -121,22 +121,22 @@ internal sealed class ProductoForm : EdicionForm
     }
 }
 
-internal sealed class PedidoForm : EdicionForm
+internal sealed class OrdenCompraForm : EdicionForm
 {
     private readonly ComboBox cliente = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ComboBox producto = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly NumericUpDown cantidad = Numero(1, 1000000, 3);
     private readonly DateTimePicker fechaEntrega = new() { Format = DateTimePickerFormat.Short };
     private readonly DataGridView detalles = Ui.Tabla();
-    private readonly List<LineaPedido> lineas = [];
-    public PedidoNuevo Resultado => new()
+    private readonly List<LineaOrdenCompra> lineas = [];
+    public OrdenCompraNueva Resultado => new()
     {
         ClienteID = (cliente.SelectedItem as Opcion)?.Id ?? 0,
         FechaEntregaSolicitada = fechaEntrega.Value.Date,
-        Detalles = lineas.Select(x => new LineaPedidoNueva { ProductoID = x.ProductoID, Cantidad = x.Cantidad }).ToList()
+        Detalles = lineas.Select(x => new LineaOrdenCompraNueva { ProductoID = x.ProductoID, Cantidad = x.Cantidad }).ToList()
     };
 
-    public PedidoForm(IEnumerable<ClienteDto> clientes, IEnumerable<ProductoDto> productos) : base("Nuevo Orden de Compra", 590)
+    public OrdenCompraForm(IEnumerable<ClienteDto> clientes, IEnumerable<ProductoDto> productos) : base("Nueva orden de compra", 590)
     {
         Width = 780;
         cliente.Items.AddRange(clientes.Where(x => x.Activo && x.Categoria == "Minorista").Select(x => new Opcion(x.ClienteID, x.Presentacion)).ToArray());
@@ -152,7 +152,7 @@ internal sealed class PedidoForm : EdicionForm
         botones.Controls.Add(Ui.Boton("Agregar producto", (_, _) => AgregarLinea(productos)));
         botones.Controls.Add(Ui.Boton("Quitar linea", (_, _) =>
         {
-            if (Ui.Seleccion<LineaPedido>(detalles) is { } actual)
+            if (Ui.Seleccion<LineaOrdenCompra>(detalles) is { } actual)
             { lineas.Remove(actual); Refrescar(); }
         }));
         Agregar("Detalle", botones);
@@ -170,7 +170,7 @@ internal sealed class PedidoForm : EdicionForm
         if (producto.SelectedItem is not Opcion op) { Ui.Aviso("Seleccione un producto."); return; }
         if (lineas.Any(x => x.ProductoID == op.Id)) { Ui.Aviso("El producto ya esta agregado."); return; }
         var item = productos.First(x => x.ProductoID == op.Id);
-        lineas.Add(new LineaPedido { ProductoID = op.Id, NombreProducto = item.Nombre, Cantidad = cantidad.Value, PrecioUnitario = item.PrecioUnitario });
+        lineas.Add(new LineaOrdenCompra { ProductoID = op.Id, NombreProducto = item.Nombre, Cantidad = cantidad.Value, PrecioUnitario = item.PrecioUnitario });
         Refrescar();
     }
 
